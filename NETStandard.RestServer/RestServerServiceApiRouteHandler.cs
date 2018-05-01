@@ -216,7 +216,10 @@ namespace NETStandard.RestServer
                 return true;
             }
 
-            object result = null;
+            object result = null;            
+            // make json response. 
+            context.Response.Headers.ContentType.Clear();
+            context.Response.Headers.ContentType.Add("application/json");
             try
             {
                 result = await restServerAction.Execute(context, inputParameter);
