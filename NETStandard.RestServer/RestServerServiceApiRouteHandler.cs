@@ -213,9 +213,6 @@ namespace NETStandard.RestServer
                 return true;
             }
 
-            // make json response.
-            context.Response.Headers.ContentType.Clear();
-            context.Response.Headers.ContentType.Add("application/json");
             object result = null;
             try
             {

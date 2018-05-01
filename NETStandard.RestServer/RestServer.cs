@@ -13,7 +13,7 @@ namespace NETStandard.RestServer
     public partial class RestServer : IDisposable, IHttpHandler
     {
         private readonly IPEndPoint _endPoint;
-        private readonly ConcurrentBag<IRestServerRouteHandler> _restServerRouteHandlers;
+        private readonly List<IRestServerRouteHandler> _restServerRouteHandlers;
 
         public bool IsRunning {
             get {
@@ -28,30 +28,26 @@ namespace NETStandard.RestServer
             }
         }
 
+        public IReadOnlyList<IRestServerRouteHandler> RestServerRouteHandlers => _restServerRouteHandlers;
+
         private System.Net.Http.HttpListener _httpListener;
         
         public RestServer(IPEndPoint endPoint, IRestServerServiceDependencyResolver restServerDependencyResolver, params Assembly[] assemblys)
         {
             _endPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
-            
-            if (assemblys == null || assemblys.Length == 0)
+            _restServerRouteHandlers = new List<IRestServerRouteHandler>();
+
+            if (assemblys != null || assemblys.Length != 0)
             {
-                _restServerRouteHandlers = new ConcurrentBag<IRestServerRouteHandler>();
-            }
-            else
-            {
-                _restServerRouteHandlers = new ConcurrentBag<IRestServerRouteHandler>(
-                    new IRestServerRouteHandler[] {
-                       new RestServerServiceRouteHandler(endPoint, restServerDependencyResolver, assemblys),
-                    }
-                );
+                RegisterRouteHandler(
+                    new RestServerServiceRouteHandler(endPoint, restServerDependencyResolver, assemblys));
             }
         }
 
         public RestServer RegisterRouteHandler(IRestServerRouteHandler handler)
         {
+            if (IsRunning) throw new InvalidOperationException("Can't modify route handlers while running.");
             _restServerRouteHandlers.Add(handler);
-
             return this;
         }
 
@@ -59,6 +55,7 @@ namespace NETStandard.RestServer
         {
             if (_httpListener == null)
             {
+                Log.i($"Starting server on {_endPoint.ToString()}");
                 _httpListener = new System.Net.Http.HttpListener(_endPoint, this);
                 _httpListener.Start();
 
@@ -77,15 +74,16 @@ namespace NETStandard.RestServer
             }
         }
         
-        private async Task ProcessHttpRequest(System.Net.Http.HttpListenerContext context)
+        private async void ProcessHttpRequest(System.Net.Http.HttpListenerContext context)
         {
-            foreach (var routeHandler in _restServerRouteHandlers)
+            foreach (var routeHandler in RestServerRouteHandlers)
             {
                 var isHandled = await routeHandler.HandleRouteAsync(context);
 
-                if (isHandled && !context.Response.IsClosed)
+                if (isHandled)
                 {
-                    context.Response.Close();
+                    if (!context.Response.IsClosed)
+                        context.Response.Close();
                     return;
                 }
             }
@@ -109,7 +107,7 @@ namespace NETStandard.RestServer
 
         public void HandleContext(System.Net.Http.HttpListenerContext context)
         {
-            Task.Factory.StartNew(async () => await ProcessHttpRequest(context));
+            Task.Factory.StartNew(() => ProcessHttpRequest(context));
         }
     }
 }
