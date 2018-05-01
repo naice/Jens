@@ -7,6 +7,7 @@
     <Authors>Jens Marchewka</Authors>
     <PackageTags>Server, Rest, Http, RestServer, Simple</PackageTags>
     <PackageId>Jens.NETStandard.RestServer</PackageId>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
