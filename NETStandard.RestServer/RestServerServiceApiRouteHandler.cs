@@ -184,7 +184,10 @@ namespace NETStandard.RestServer
                     string requestString = await context.Request.ReadContentAsStringAsync();
                     if (!string.IsNullOrEmpty(requestString))
                     {
-                        inputParameter = JsonConvert.DeserializeObject(requestString, restServerAction.InputType);
+                        if (restServerAction.InputType == typeof(string))
+                            inputParameter = requestString;
+                        else
+                            inputParameter = JsonConvert.DeserializeObject(requestString, restServerAction.InputType);
                     }
 
                     if (restServerAction.IsParameterized)
