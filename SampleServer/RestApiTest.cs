@@ -7,6 +7,11 @@ using System.Threading.Tasks;
 
 namespace SampleServer
 {
+    internal class SampleApiFullBodyResponse
+    {
+        public string Body { get; set; }
+    }
+
     [RestServerServiceInstance(RestServerServiceInstanceType.Instance)]
     internal class SampleApiService : RestServerService
     {
@@ -21,6 +26,12 @@ namespace SampleServer
         public Configuration GetConfiguration()
         {
             return _config;
+        }
+
+        [RestServerServiceCall("/sampleapi/fullbody")]
+        public SampleApiFullBodyResponse FullBody(string body)
+        {
+            return new SampleApiFullBodyResponse() { Body = body };
         }
     }
 }

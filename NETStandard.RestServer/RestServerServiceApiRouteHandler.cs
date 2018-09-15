@@ -184,7 +184,10 @@ namespace NETStandard.RestServer
                     string requestString = await context.Request.ReadContentAsStringAsync();
                     if (!string.IsNullOrEmpty(requestString))
                     {
-                        inputParameter = JsonConvert.DeserializeObject(requestString, restServerAction.InputType);
+                        if (restServerAction.InputType == typeof(string))
+                            inputParameter = requestString;
+                        else
+                            inputParameter = JsonConvert.DeserializeObject(requestString, restServerAction.InputType);
                     }
 
                     if (restServerAction.IsParameterized)
@@ -213,7 +216,10 @@ namespace NETStandard.RestServer
                 return true;
             }
 
-            object result = null;
+            object result = null;            
+            // make json response. 
+            context.Response.Headers.ContentType.Clear();
+            context.Response.Headers.ContentType.Add("application/json");
             try
             {
                 result = await restServerAction.Execute(context, inputParameter);
