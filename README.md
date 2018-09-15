@@ -35,6 +35,11 @@ internal class SampleApiFullBodyResponse
 {
     public string Body { get; set; }
 }
+internal class WildcardTest
+{
+    public int WildcardInt { get; set; }
+    public string WildcardString { get; set; }
+}
 
 [RestServerServiceInstance(RestServerServiceInstanceType.Instance)]
 internal class SampleApiService : RestServerService
@@ -57,5 +62,12 @@ internal class SampleApiService : RestServerService
     {
         return new SampleApiFullBodyResponse() { Body = body };
     }
+
+    [RestServerServiceCall("/sampleapi/wildcard/{WildcardInt}/{WildcardString}")]
+    public WildcardTest FullBody(WildcardTest wildcardTest)
+    {
+        return wildcardTest;
+    }
 }
 ```
+Wildcards are used to fill properties of the input object directly from url. 
