@@ -48,14 +48,13 @@ namespace NETStandard.RestServer
         public bool IsParameterized { get { return CompiledParameters != null && CompiledParameters.Length > 0; } }
         public ExposedRestServerActionCompiledParameters[] CompiledParameters { get; set; }
         public string[] Methods { get; set; }
-        public ExposedRestServerService RestServerService { get { return _restServerService; } }
+        public ExposedRestServerService RestServerService { get; }
 
-        private readonly ExposedRestServerService _restServerService;
         private readonly MethodInfo _methodInfo;
 
         public ExposedRestServerAction(ExposedRestServerService restServerService, MethodInfo methodInfo)
         {
-            _restServerService = restServerService;
+            RestServerService = restServerService;
             _methodInfo = methodInfo;
         }
 
@@ -149,16 +148,16 @@ namespace NETStandard.RestServer
 
         private object ExecuteInternal(HttpListenerContext context, object param)
         {
-            return _methodInfo.Invoke(_restServerService.GetInstance(context), new object[] { param });
+            return _methodInfo.Invoke(RestServerService.GetInstance(context), new object[] { param });
         }
         private object ExecuteInternal(HttpListenerContext context)
         {
-            return _methodInfo.Invoke(_restServerService.GetInstance(context), new object[0]);
+            return _methodInfo.Invoke(RestServerService.GetInstance(context), new object[0]);
         }
         private async Task<object> ExecuteAsync(HttpListenerContext context, object param)
         {
             //return await (dynamic)_methodInfo.Invoke(_restServerService.GetInstance(context), new object[] { param });
-            var task = (Task)_methodInfo.Invoke(_restServerService.GetInstance(context), new object[] { param });
+            var task = (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), new object[] { param });
             var result = await Task.Run<object>(() => { return task.GetType().GetProperty("Result").GetValue(task); });
 
             return result;
@@ -166,26 +165,26 @@ namespace NETStandard.RestServer
         private async Task<object> ExecuteAsync(HttpListenerContext context)
         {
             // dynamic fails with void, dont know why.
-            var task = (Task)_methodInfo.Invoke(_restServerService.GetInstance(context), new object[0]);
+            var task = (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), new object[0]);
             var result = await Task.Run<object>(() => { return task.GetType().GetProperty("Result").GetValue(task); });
 
             return result;
         }
         private async Task ExecuteVoidAsync(HttpListenerContext context, object param)
         {
-            await (Task)_methodInfo.Invoke(_restServerService.GetInstance(context), new object[] { param });
+            await (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), new object[] { param });
         }
         private async Task ExecuteVoidAsync(HttpListenerContext context)
         {
-            await (Task)_methodInfo.Invoke(_restServerService.GetInstance(context), new object[0]);
+            await (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), new object[0]);
         }
         private void ExecuteVoid(HttpListenerContext context, object param)
         {
-            _methodInfo.Invoke(_restServerService.GetInstance(context), new object[] { param });
+            _methodInfo.Invoke(RestServerService.GetInstance(context), new object[] { param });
         }
         private void ExecuteVoid(HttpListenerContext context)
         {
-            _methodInfo.Invoke(_restServerService.GetInstance(context), new object[0]);
+            _methodInfo.Invoke(RestServerService.GetInstance(context), new object[0]);
         }
 
         private static bool IsGenericTaskType(Type type)

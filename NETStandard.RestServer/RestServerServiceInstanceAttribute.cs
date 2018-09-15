@@ -21,16 +21,11 @@ namespace NETStandard.RestServer
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class RestServerServiceInstanceAttribute : Attribute
     {
-        readonly RestServerServiceInstanceType _restServerServiceInstanceType;
-        
         public RestServerServiceInstanceAttribute(RestServerServiceInstanceType RestServerServiceInstanceType)
         {
-            this._restServerServiceInstanceType = RestServerServiceInstanceType;
+            this.RestServerServiceInstanceType = RestServerServiceInstanceType;
         }
 
-        public RestServerServiceInstanceType RestServerServiceInstanceType
-        {
-            get { return _restServerServiceInstanceType; }
-        }
+        public RestServerServiceInstanceType RestServerServiceInstanceType { get; }
     }
 }
