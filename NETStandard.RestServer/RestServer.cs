@@ -31,7 +31,8 @@ namespace NETStandard.RestServer
         public IReadOnlyList<IRestServerRouteHandler> RestServerRouteHandlers => _restServerRouteHandlers;
 
         private System.Net.Http.HttpListener _httpListener;
-        
+        private IRestServerRouteHandler _restServerRoute404Handler;
+
         public RestServer(IPEndPoint endPoint, IRestServerServiceDependencyResolver restServerDependencyResolver, params Assembly[] assemblys)
         {
             _endPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
@@ -48,6 +49,13 @@ namespace NETStandard.RestServer
         {
             if (IsRunning) throw new InvalidOperationException("Can't modify route handlers while running.");
             _restServerRouteHandlers.Add(handler);
+            return this;
+        }
+
+        public RestServer With404Handler(IRestServerRouteHandler handler)
+        {
+            if (IsRunning) throw new InvalidOperationException("Can't modify route handlers while running.");
+            _restServerRoute404Handler = handler;
             return this;
         }
 
@@ -76,21 +84,27 @@ namespace NETStandard.RestServer
         
         private async void ProcessHttpRequest(System.Net.Http.HttpListenerContext context)
         {
+            bool isHandled = false;
             foreach (var routeHandler in RestServerRouteHandlers)
             {
-                var isHandled = await routeHandler.HandleRouteAsync(context);
+                isHandled = await routeHandler.HandleRouteAsync(context);
 
                 if (isHandled)
                 {
-                    if (!context.Response.IsClosed)
-                        context.Response.Close();
-                    return;
+                    break;
                 }
+            }
+
+            if (!isHandled && _restServerRoute404Handler != null)
+            {
+                isHandled = await _restServerRoute404Handler.HandleRouteAsync(context);
             }
 
             if (!context.Response.IsClosed)
             {
-                context.Response.NotFound();
+                if (!isHandled)
+                    context.Response.NotFound();
+
                 context.Response.Close();
             }
         }
