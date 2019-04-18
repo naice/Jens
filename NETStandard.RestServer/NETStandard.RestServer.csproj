@@ -7,13 +7,14 @@
     <Authors>Jens Marchewka</Authors>
     <PackageTags>Server, Rest, Http, RestServer, Simple</PackageTags>
     <PackageId>Jens.NETStandard.RestServer</PackageId>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Description>A small and very simple .net core rest capable web server. Visit https://github.com/naice/NETStandard.RestServer for more infos.</Description>
     <Copyright>Jens Marchewka 2018</Copyright>
     <PackageProjectUrl>https://github.com/naice/NETStandard.RestServer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/naice/NETStandard.RestServer.git</RepositoryUrl>
     <RepositoryType>GIT</RepositoryType>
     <PackageReleaseNotes>Added simple 404 handler, logic to handle 404 seperatly.</PackageReleaseNotes>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
