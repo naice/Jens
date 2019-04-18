@@ -95,13 +95,16 @@ namespace NETStandard.RestServer
                 }
 
                 Type inputType = null;
+                bool isBodyRequested = false;
                 var parameters = method.GetParameters();
-                if (parameters != null && parameters.Length > 1)
+
+                if (parameters != null && parameters.Length > 2)
                 {
                     Log.w($"{nameof(RestServerServiceRouteHandler)}: Method Parameter missmatch. Too many parameters. {routeStr}");
                     continue;
                 }
-                if (parameters != null && parameters.Length == 1)
+
+                if (parameters != null && parameters.Length > 0)
                 {
                     var parameterInfo = parameters[0];
                     var parameterTypeInfo = parameterInfo.ParameterType.GetTypeInfo();
@@ -112,10 +115,23 @@ namespace NETStandard.RestServer
                     }
 
                     inputType = parameterInfo.ParameterType;
+                    if (inputType == typeof(string))
+                        isBodyRequested = true;
+                }
+
+                if (parameters != null && parameters.Length == 2)
+                {
+                    if (parameters[1].ParameterType != typeof(string))
+                    {
+                        Log.w($"{nameof(RestServerServiceRouteHandler)}: Method Parameter missmatch. Two parameters found but the last one is no string. {routeStr}");
+                        continue;
+                    }
+                    isBodyRequested = true;
                 }
 
                 var exposedRestServerAction = new ExposedRestServerAction(exposedRestServerService, method)
                 {
+                    IsBodyRequested = isBodyRequested,
                     OutputType = method.ReturnType,
                     InputType = inputType,
                     Route = routeStr,
@@ -175,27 +191,32 @@ namespace NETStandard.RestServer
 
             Log.i($"Handling route {route} - Correlation: {correlationId}");
 
-            object inputParameter = null;
+            object[] inputParameter = null;
 
             try
             {
                 if (restServerAction.InputType != null)
                 {
                     string requestString = await context.Request.ReadContentAsStringAsync();
+                    if (restServerAction.IsBodyRequested && restServerAction.IsParameterized)
+                        inputParameter = new object[2] { null, requestString };
+                    else
+                        inputParameter = new object[1];
+
                     if (!string.IsNullOrEmpty(requestString))
                     {
                         if (restServerAction.InputType == typeof(string))
-                            inputParameter = requestString;
-                        else
-                            inputParameter = JsonConvert.DeserializeObject(requestString, restServerAction.InputType);
+                            inputParameter[0] = requestString;
+                        else if (!restServerAction.IsBodyRequested)
+                            inputParameter[0] = JsonConvert.DeserializeObject(requestString, restServerAction.InputType);
                     }
 
                     if (restServerAction.IsParameterized)
                     {
-                        if (inputParameter == null)
-                            inputParameter = Activator.CreateInstance(restServerAction.InputType);
+                        if (inputParameter[0] == null)
+                            inputParameter[0] = Activator.CreateInstance(restServerAction.InputType);
 
-                        ExposedRestServerActionCompiledParameters.FillParameters(inputParameter, route, restServerAction.CompiledParameters);
+                        ExposedRestServerActionCompiledParameters.FillParameters(inputParameter[0], route, restServerAction.CompiledParameters);
                     }
                 }
             }

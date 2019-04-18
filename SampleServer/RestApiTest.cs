@@ -16,6 +16,7 @@ namespace SampleServer
     {
         public int WildcardInt { get; set; }
         public string WildcardString { get; set; }
+        public string Body { get; set; }
     }
 
     [RestServerServiceInstance(RestServerServiceInstanceType.Instance)]
@@ -43,6 +44,14 @@ namespace SampleServer
         [RestServerServiceCall("/sampleapi/wildcard/{WildcardInt}/{WildcardString}")]
         public WildcardTest FullBody(WildcardTest wildcardTest)
         {
+            return wildcardTest;
+        }
+
+        [RestServerServiceCall("/sampleapi/wildcardAndBody/{WildcardInt}/{WildcardString}")]
+        public WildcardTest FullBody(WildcardTest wildcardTest, string body)
+        {
+            wildcardTest.Body = body;
+
             return wildcardTest;
         }
     }
