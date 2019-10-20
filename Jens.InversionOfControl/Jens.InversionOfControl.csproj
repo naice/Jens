@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>Jens Marchewka (im.naice@googlemail.com)</Authors>
+    <Description>Simple inversion of control container with simple instance activation mechanic. Always tries to activate the largest constructor possible.</Description>
+    <Copyright>Jens Marchewka (im.naice@googlemail.com) 2019</Copyright>
+    <PackageProjectUrl>https://github.com/naice/Jens</PackageProjectUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RepositoryType>GIT</RepositoryType>
+    <RepositoryUrl>https://github.com/naice/Jens.git</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>

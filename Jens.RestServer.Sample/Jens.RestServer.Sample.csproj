@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <UserSecretsId>dotnet-Jens.RestServer.Sample-87ADC1BC-9F3A-4536-82FF-782F542AAC88</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="InetPub\index.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="InetPub\index.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jens.InversionOfControl\Jens.InversionOfControl.csproj" />
+    <ProjectReference Include="..\Jens.RestServer\Jens.RestServer.csproj" />
+  </ItemGroup>
+</Project>

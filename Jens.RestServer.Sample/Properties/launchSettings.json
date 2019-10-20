@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "Jens.RestServer.Sample": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
