@@ -43,6 +43,7 @@ namespace NETStandard.RestServer
     {
         public Type InputType { get; set; }
         public Type OutputType { get; set; }
+        public bool IsBodyRequested { get; set; }
         public string Route { get; set; }
         public Regex RouteRegex { get; set; }
         public bool IsParameterized { get { return CompiledParameters != null && CompiledParameters.Length > 0; } }
@@ -105,8 +106,9 @@ namespace NETStandard.RestServer
             CompiledParameters = compiled.ToArray();
         }
 
-        public async Task<object> Execute(HttpListenerContext context, object param)
+        public async Task<object> Execute(HttpListenerContext context, object[] param)
         {
+
             // VOID
             if (OutputType == null && InputType == null)
             {
@@ -146,18 +148,18 @@ namespace NETStandard.RestServer
             return ExecuteInternal(context, param);
         }
 
-        private object ExecuteInternal(HttpListenerContext context, object param)
+        private object ExecuteInternal(HttpListenerContext context, object[] param)
         {
-            return _methodInfo.Invoke(RestServerService.GetInstance(context), new object[] { param });
+            return _methodInfo.Invoke(RestServerService.GetInstance(context), param );
         }
         private object ExecuteInternal(HttpListenerContext context)
         {
             return _methodInfo.Invoke(RestServerService.GetInstance(context), new object[0]);
         }
-        private async Task<object> ExecuteAsync(HttpListenerContext context, object param)
+        private async Task<object> ExecuteAsync(HttpListenerContext context, object[] param)
         {
             //return await (dynamic)_methodInfo.Invoke(_restServerService.GetInstance(context), new object[] { param });
-            var task = (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), new object[] { param });
+            var task = (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), param);
             var result = await Task.Run<object>(() => { return task.GetType().GetProperty("Result").GetValue(task); });
 
             return result;
@@ -170,17 +172,17 @@ namespace NETStandard.RestServer
 
             return result;
         }
-        private async Task ExecuteVoidAsync(HttpListenerContext context, object param)
+        private async Task ExecuteVoidAsync(HttpListenerContext context, object[] param)
         {
-            await (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), new object[] { param });
+            await (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), param);
         }
         private async Task ExecuteVoidAsync(HttpListenerContext context)
         {
             await (Task)_methodInfo.Invoke(RestServerService.GetInstance(context), new object[0]);
         }
-        private void ExecuteVoid(HttpListenerContext context, object param)
+        private void ExecuteVoid(HttpListenerContext context, object[] param)
         {
-            _methodInfo.Invoke(RestServerService.GetInstance(context), new object[] { param });
+            _methodInfo.Invoke(RestServerService.GetInstance(context), param);
         }
         private void ExecuteVoid(HttpListenerContext context)
         {
