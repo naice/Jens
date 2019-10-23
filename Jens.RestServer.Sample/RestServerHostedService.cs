@@ -27,7 +27,7 @@ namespace Jens.RestServer.Sample
             var loggerAdapter = new ILoggerAdapter(_logger);
             // initialize inversion of control container.
             _container = new RestServerContainer()
-                .WithSingleton(configuration.Value)                
+                .WithSingleton(_config)
                 as RestServerContainer;
 
             // initialize simple rest server with config defaults.
