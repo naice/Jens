@@ -1,3 +1,7 @@
+# Jens.InversionOfControl
+This is a simple IoCContainer max depth is one, no life cycle handling (not planned). Next milestone will be Interception capability for interfaces. Dependencies will be auto solved always starting with the largest constructor (arguments) if no suitable constructor is found an exception is thrown. For a code sample please take a look into the Jens.InversionOfControl.Test. Happy Coding.
+
+
 # Jens.RestServer
 
 This started as a side project of my MagicMirror, as I wanted to have a lightweight restful webserver to handle my configuration web page.
