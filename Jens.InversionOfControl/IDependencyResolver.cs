@@ -6,9 +6,13 @@ namespace Jens.InversionOfControl
     {
         object[] GetDependencies(Type[] types);
 
+        object[] GetDependencies(Type type);
+
         object GetDependency(Type type);
 
         Type GetDependency<Type>()
+            where Type : class;
+        Type[] GetDependencies<Type>()
             where Type : class;
 
         Type Activate<Type>()

@@ -15,8 +15,11 @@ namespace Jens.InversionOfControl
             public LazyPacked(object lazy)
             {
                 Lazy = lazy ?? throw new ArgumentNullException(nameof(lazy));
+                //if (lazy.GetType().GetGenericTypeDefinition() != typeof(Lazy<>))
+                //    throw new ArgumentException("Is not from generic type Lazy<>", nameof(lazy));
             }
 
+            //static readonly System.Reflection.PropertyInfo valueProperty = .GetProperty("Value");
             private object GetValueTypeLess()
             {
                 var genType = Lazy.GetType().GetGenericArguments()[0];
@@ -39,7 +42,17 @@ namespace Jens.InversionOfControl
         /// </summary>
         public Container WithSingleton<T>() where T : class
         {
-            WithSingleton(new Lazy<T>(()=>SimpleActivator.Activate(typeof(T), this) as T));
+            WithSingleton(new Lazy<T>(() => SimpleActivator.Activate(typeof(T), this) as T));
+            return this;
+        }
+        /// <summary>
+        /// [Lazy] Register Singleton of Type <typeparamref name="OnInterface"/> activated by <typeparamref name="FromType"/> but <typeparamref name="FromType"/> is never exposed. 
+        /// </summary>
+        public Container WithSingleton<OnInterface, FromType>()
+            where OnInterface : class 
+            where FromType : class
+        {
+            WithSingleton(new Lazy<OnInterface>(() => SimpleActivator.Activate(typeof(FromType), this) as OnInterface));
             return this;
         }
         /// <summary>
@@ -167,9 +180,28 @@ namespace Jens.InversionOfControl
             }
         }
 
-        public object[] GetDependecys(Type[] dependencyTypes)
+        public object[] GetDependencies(Type dependencyType)
         {
-            return GetDependencies(dependencyTypes);
+            var allTypes = _dependencySingletonContainer.Keys.Union(_dependencyTypeContainer);
+
+            var detected = allTypes.Where(type => GetBaseTypes(type).Contains(dependencyType)).ToList();
+
+            return detected.Select(type=>GetDependency(type)).ToArray();
+        }
+
+        public Type[] GetDependencies<Type>() where Type : class
+        {
+            return GetDependencies(typeof(Type)).Cast<Type>().ToArray();
+        }
+
+        private IEnumerable<Type> GetBaseTypes(Type type)
+        {
+            var t = type;
+            while (t != null)
+            {
+                yield return t;
+                t = t.BaseType;
+            }
         }
     }
 }
