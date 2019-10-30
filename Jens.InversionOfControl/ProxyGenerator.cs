@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.Remoting.Messaging;
-using System.Runtime.Remoting.Proxies;
+using System.Threading.Tasks;
 
 namespace Jens.InversionOfControl
 {
@@ -12,89 +11,56 @@ namespace Jens.InversionOfControl
     /// <summary>
     /// Generates a proxy for a given interface that routes to the given implementing instance. Interceptors will be called for each method call.
     /// </summary>
-    public class ProxyGenerator : RealProxy
+    public class ProxyGenerator : DispatchProxy
     {
-        private readonly object _instance;
-        private readonly IInterceptor[] _interceptors;
+        private object _instance;
+        private IInterceptor[] _interceptors;
 
-        private ProxyGenerator(object instance, Type interfaceType, IInterceptor[] interceptors)
-            : base(interfaceType)
+        private void SetParams(object instance, IInterceptor[] interceptors)
         {
             _instance = instance ?? throw new ArgumentNullException(nameof(instance));
             _interceptors = interceptors ?? throw new ArgumentNullException(nameof(interceptors));
-
-            if (!interfaceType.IsAssignableFrom(instance.GetType()))
-                throw new ArgumentException($"{instance.GetType().FullName} does not implement {interfaceType.FullName}");
         }
 
-        /// <summary>
-        /// Creates a interface proxy.
-        /// </summary>
-        /// <param name="instance">The target implementing instance for the proxy.</param>
-        /// <param name="interfaceType">The interface <see cref="Type"/> to generate the proxy for.</param>
-        /// <param name="interceptors">Array of <see cref="IInterceptor"/>'s</param>
-        /// <returns>Proxy for the given interface targeting the given instance.</returns>
-        public static object Create(object instance, Type interfaceType, IInterceptor[] interceptors)
+        public static InterfaceType Create<InterfaceType>(IInterceptor[] interceptors)
         {
-            if (!interfaceType.IsInterface)
-                throw new ArgumentException($"{interfaceType.FullName} is not an interface.");
-
-            return new ProxyGenerator(instance, interfaceType, interceptors).GetTransparentProxy();
-        }
-        /// <summary>
-        /// Creates a interface proxy.
-        /// </summary>
-        /// <param name="instance">The target implementing instance for the proxy.</param>
-        /// <param name="interfaceType">The interface <see cref="Type"/> to generate the proxy for.</param>
-        /// <param name="interceptors"><see cref="IInterceptor"/> to bind.</param>
-        /// <returns>Proxy for the given interface targeting the given instance.</returns>
-        public static object Create(object instance, Type interfaceType, IInterceptor interceptor)
-        {
-            return Create(instance, interfaceType, new IInterceptor[] { interceptor });
-        }
-        /// <summary>
-        /// <see cref="Create(object, Type, IInterceptor)"/>
-        /// </summary>
-        public static InterfaceType Create<InterfaceType>(InterfaceType instance, IInterceptor[] interceptors)
-        {
-            var interfaceType = typeof(InterfaceType);
-
-            return (InterfaceType)Create(instance, interfaceType, interceptors);
+            object proxy = Create<InterfaceType, ProxyGenerator>();
+            ((ProxyGenerator)proxy).SetParams(proxy, interceptors);
+            return (InterfaceType)proxy;
         }
         /// <summary>
         /// <see cref="Create(object, Type, IInterceptor[])"/>
         /// </summary>
-        public static InterfaceType Create<InterfaceType>(InterfaceType instance, IInterceptor interceptor)
+        public static InterfaceType Create<InterfaceType>(IInterceptor interceptor)
         {
-            return Create(instance, new IInterceptor[] { interceptor });
+            return Create<InterfaceType>(new IInterceptor[] { interceptor });
         }
 
         //[DebuggerStepThrough]
         //[DebuggerHidden]
-        public override IMessage Invoke(IMessage msg)
+        protected override object Invoke(MethodInfo targetMethod, object[] args)
         {
-            var methodCall = (IMethodCallMessage)msg;
-            var method = (MethodInfo)methodCall.MethodBase;
+            if (targetMethod == null)
+                throw new ArgumentNullException(nameof(targetMethod));
 
             try
             {
-                var invocation = new Invocation(method, _instance, methodCall.InArgs);
+                var invocation = new Invocation(targetMethod, _instance, args);
                 foreach (var interceptor in _interceptors)
                 {
                     interceptor.Intercept(invocation);
                 }
 
-                var result = method.Invoke(_instance, methodCall.InArgs);
-                return new ReturnMessage(result, null, 0, methodCall.LogicalCallContext, methodCall);
+                return targetMethod.Invoke(_instance, args);
             }
             catch (Exception ex)
-            {
+            { 
                 if (ex is TargetInvocationException && ex.InnerException != null)
                 {
-                    return new ReturnMessage(ex.InnerException, msg as IMethodCallMessage);
+                    throw ex.InnerException;
                 }
 
-                return new ReturnMessage(ex, msg as IMethodCallMessage);
+                throw ex;
             }
         }
     }

@@ -11,4 +11,8 @@
     <RepositoryUrl>https://github.com/naice/Jens.git</RepositoryUrl>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Reflection.DispatchProxy" Version="4.6.0" />
+  </ItemGroup>
+
 </Project>
