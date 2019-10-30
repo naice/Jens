@@ -16,6 +16,8 @@ namespace Jens.InversionOfControl
 
         public void Intercept(IInvocation invocation)
         {
+            if (!invocation.TargetMethod.CustomAttributes.Any())
+                return;
             var attribute = invocation.TargetMethod.GetCustomAttribute(typeof(Attr));
             if (attribute == null)
                 return;

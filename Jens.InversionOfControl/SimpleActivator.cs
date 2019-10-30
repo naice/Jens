@@ -45,14 +45,15 @@ namespace Jens.InversionOfControl
 
         private static object CreateInstance(IDependencyResolver dependecyResolver, Type type, ConstructorInfo constructor, object[] constructorArgs)
         {
-            var interceptAttrib = type.GetCustomAttribute<InterceptAttribute>();
             var instance = constructor.Invoke(constructorArgs);
+            var interceptAttrib = type.GetCustomAttribute<InterceptAttribute>();
             if (interceptAttrib == null)
                 return instance;
 
+            // decorate instance with proxy.
             return ProxyGenerator.Create(
-                instance, 
-                interceptAttrib.InterfaceType, 
+                interceptAttrib.InterfaceType,
+                instance,
                 interceptAttrib.Interceptors.Select(
                     interceptorType => dependecyResolver.GetDependency(interceptorType) as IInterceptor)
                         .ToArray());

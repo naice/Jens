@@ -22,22 +22,31 @@ namespace Jens.InversionOfControl
             _interceptors = interceptors ?? throw new ArgumentNullException(nameof(interceptors));
         }
 
-        public static InterfaceType Create<InterfaceType>(IInterceptor[] interceptors)
+        public static object Create(Type interfaceType, object instance,  IInterceptor[] interceptors)
         {
-            object proxy = Create<InterfaceType, ProxyGenerator>();
-            ((ProxyGenerator)proxy).SetParams(proxy, interceptors);
-            return (InterfaceType)proxy;
-        }
-        /// <summary>
-        /// <see cref="Create(object, Type, IInterceptor[])"/>
-        /// </summary>
-        public static InterfaceType Create<InterfaceType>(IInterceptor interceptor)
-        {
-            return Create<InterfaceType>(new IInterceptor[] { interceptor });
+            var genericCreateMethod = typeof(ProxyGenerator).GetMethod("CreateInternal", BindingFlags.NonPublic | BindingFlags.Static);
+            var constructedMethod = genericCreateMethod.MakeGenericMethod(interfaceType);
+            return constructedMethod.Invoke(null, new object[] { instance, interceptors });
         }
 
-        //[DebuggerStepThrough]
-        //[DebuggerHidden]
+        private static InterfaceType CreateInternal<InterfaceType>(InterfaceType instance, IInterceptor[] interceptors)
+        {
+            object proxy = DispatchProxy.Create<InterfaceType, ProxyGenerator>();
+            ((ProxyGenerator)proxy).SetParams(instance, interceptors);
+            return (InterfaceType)proxy;
+        }
+
+        public static InterfaceType Create<InterfaceType>(InterfaceType instance, IInterceptor[] interceptors)
+        {
+            return CreateInternal(instance, interceptors);
+        }
+
+        public static InterfaceType Create<InterfaceType>(InterfaceType instance, IInterceptor interceptors)
+        {
+            return CreateInternal(instance, new IInterceptor[] { interceptors });
+        }
+
+        // Invoked via the exposed Interface-Proxy.
         protected override object Invoke(MethodInfo targetMethod, object[] args)
         {
             if (targetMethod == null)
@@ -45,12 +54,15 @@ namespace Jens.InversionOfControl
 
             try
             {
+                // Do interception of function execution. 
                 var invocation = new Invocation(targetMethod, _instance, args);
                 foreach (var interceptor in _interceptors)
                 {
+                    // Invoke interception.
                     interceptor.Intercept(invocation);
                 }
 
+                // Invoke "real" method. 
                 return targetMethod.Invoke(_instance, args);
             }
             catch (Exception ex)
