@@ -16,13 +16,29 @@ namespace Jens.InversionOfControl
 
         public void Intercept(IInvocation invocation)
         {
-            if (!invocation.TargetMethod.CustomAttributes.Any())
+            var implementationType = invocation.Target.GetType();
+            var interfaceMethod = invocation.TargetMethod;
+            var implementationMethod = GetMethodImplementation(implementationType, interfaceMethod);
+
+            if (!implementationMethod.CustomAttributes.Any())
                 return;
-            var attribute = invocation.TargetMethod.GetCustomAttribute(typeof(Attr));
+            var attribute = implementationMethod.GetCustomAttribute(typeof(Attr));
             if (attribute == null)
                 return;
 
             Intercept(invocation, (Attr)attribute);
+        }
+        private static MethodInfo GetMethodImplementation(Type implementationType, MethodInfo ifaceMethod)
+        {
+            InterfaceMapping ifaceMap = implementationType.GetInterfaceMap(ifaceMethod.DeclaringType);
+            for (int i = 0; i < ifaceMap.InterfaceMethods.Length; i++)
+            {
+                if (ifaceMap.InterfaceMethods[i].Equals(ifaceMethod))
+                    return ifaceMap.TargetMethods[i];
+            }
+            // We shouldn't get here
+            throw new InvalidOperationException($"Implemented method ({ifaceMethod.Name}) missing from Interface ({ifaceMethod.DeclaringType.FullName}) on ({implementationType.FullName})"); 
+            
         }
 
         public abstract void Intercept(IInvocation invocation, Attr attribute);

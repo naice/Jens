@@ -33,24 +33,23 @@ namespace Jens.InversionOfControl.Test
         }
     }
 
-    public interface IProxyTestClass
+    public interface ITestInterface
     {
         string TestProp { get; }
-        [AttributeInterceptorTest]
         bool ExecuteStuff();
     }
 
-    [Intercept(typeof(IProxyTestClass), typeof(AttributeTestInterceptor))]
-    public class ProxyTestClass : IProxyTestClass
+    [Intercept(typeof(ITestInterface), typeof(AttributeTestInterceptor))]
+    public class InterceptedTestImplementation : ITestInterface
     {
         public string TestProp => "test";
 
+        [AttributeInterceptorTest]
         public bool ExecuteStuff()
         {
             return true;
         }
     }
-
 
 
     [TestClass]
@@ -59,14 +58,14 @@ namespace Jens.InversionOfControl.Test
         [TestMethod]
         public void BasicInterceptionShouldThrow()
         {
-            var intf = ProxyGenerator.Create<IProxyTestClass>(new ProxyTestClass(), new AttributeTestInterceptor().WithThrowOnIntercept());
+            var intf = ProxyGenerator.Create<ITestInterface>(new InterceptedTestImplementation(), new AttributeTestInterceptor().WithThrowOnIntercept());
             Assert.AreEqual(intf.TestProp, "test");
             Assert.ThrowsException<AttributeTestInterceptorException>(() => intf.ExecuteStuff());
         }
         [TestMethod]
         public void BasicInterceptionShouldNotThrow()
         {
-            var intf = ProxyGenerator.Create<IProxyTestClass>(new ProxyTestClass(), new AttributeTestInterceptor());
+            var intf = ProxyGenerator.Create<ITestInterface>(new InterceptedTestImplementation(), new AttributeTestInterceptor());
             Assert.AreEqual(intf.TestProp, "test");
             intf.ExecuteStuff();
         }
@@ -75,9 +74,9 @@ namespace Jens.InversionOfControl.Test
         {
             var container = new Container()
                 .WithSingleton<AttributeTestInterceptor>()
-                .WithSingleton<IProxyTestClass, ProxyTestClass>();
+                .WithSingleton<ITestInterface, InterceptedTestImplementation>();
             container.GetDependency<AttributeTestInterceptor>().WithThrowOnIntercept();
-            var intf = container.GetDependency<IProxyTestClass>();
+            var intf = container.GetDependency<ITestInterface>();
             Assert.AreEqual(intf.TestProp, "test");
             Assert.ThrowsException<AttributeTestInterceptorException>(() => intf.ExecuteStuff());
         }
@@ -86,9 +85,9 @@ namespace Jens.InversionOfControl.Test
         {
             var container = new Container()
                 .WithSingleton<AttributeTestInterceptor>()
-                .WithSingleton<IProxyTestClass, ProxyTestClass>();
+                .WithSingleton<ITestInterface, InterceptedTestImplementation>();
 
-            var intf = container.GetDependency<IProxyTestClass>();
+            var intf = container.GetDependency<ITestInterface>();
             Assert.AreEqual(intf.TestProp, "test");
             intf.ExecuteStuff();
         }
