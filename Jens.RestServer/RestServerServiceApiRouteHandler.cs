@@ -244,6 +244,14 @@ namespace Jens.RestServer
             {
                 result = await restServerAction.Execute(context, inputParameter);
             }
+            catch (RestServerServiceCallException ex)
+            {
+                _logger.Info($"{correlationId} Routing failed, on expected exception {ex.GetType().FullName}, {route} action failed. Code: {ex.HttpStatusCode} Phrase: {ex.HttpReasonPhrase}  Message: {ex.Message}");
+                context.Response.ReasonPhrase = ex.HttpReasonPhrase;
+                context.Response.StatusCode = ex.HttpStatusCode;
+                context.Response.Close();
+                return true;
+            }
             catch (Exception ex)
             {
                 _logger.Info($"{correlationId} Routing failed, {route} action failed. Message: {ex.Message}");
