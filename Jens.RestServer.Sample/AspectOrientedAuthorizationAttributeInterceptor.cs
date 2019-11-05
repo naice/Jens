@@ -1,6 +1,7 @@
 ﻿using Jens.InversionOfControl;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Jens.RestServer.Sample
@@ -26,9 +27,13 @@ namespace Jens.RestServer.Sample
 
     public class UnauthorizedException : RestServerServiceCallException
     {
+        public UnauthorizedException() : base(401, "Unauthorized", "Unauthorized")
+        {
+
+        }
         public UnauthorizedException(string message) : base(401, "Unauthorized", message)
         {
-            
+
         }
     }
 
@@ -39,9 +44,9 @@ namespace Jens.RestServer.Sample
         public AspectOrientedAuthorizationAttributeInterceptor()
         {
             _givenRights = new List<string>() {
-                "TestRecht01",
-                "TestRecht02",
-                "TestRecht03",
+                "TestRight01",
+                "TestRight02",
+                "TestRight03",
             };
         }
 
@@ -49,6 +54,11 @@ namespace Jens.RestServer.Sample
         {
             if (!HasRights(attribute.Rights))
                 throw new UnauthorizedException();
+        }
+
+        private bool HasRights(string[] rights)
+        {
+            return rights.All(right => _givenRights.Contains(right)); // Bad performance. Don't try this at home.
         }
     }
 }

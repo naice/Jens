@@ -16,6 +16,7 @@ namespace Jens.RestServer
         private readonly IRestServerDependencyResolver _restServerDependencyResolver;
         private readonly Assembly[] _assemblys;
         private readonly ILogger _logger;
+        private readonly Type _restServerServiceBaseType = typeof(IRestServerService);
 
         public RestServerServiceRouteHandler(IPEndPoint endPoint, IRestServerDependencyResolver restServerDependencyResolver, ILogger logger, params Assembly[] assemblys)
         {
@@ -30,23 +31,35 @@ namespace Jens.RestServer
 
         private void RegisterExposedServices()
         {
-            var restServerServiceBaseType = typeof(RestServerService);
             foreach (var assembly in _assemblys)
             {
-                foreach (var RestServerServiceType in assembly.GetTypes()
-                    .Where(type => type != restServerServiceBaseType && type.GetTypeInfo().BaseType == restServerServiceBaseType))
+                foreach (var restServerServiceType in assembly.GetTypes()
+                    .Where(type => type != _restServerServiceBaseType && _restServerServiceBaseType.IsAssignableFrom(type) && type.IsClass))
                 {
                     var instanceType = RestServerServiceInstanceType.Instance;
-                    var attrib = RestServerServiceType.GetTypeInfo().GetCustomAttribute<RestServerServiceInstanceAttribute>();
+                    var attrib = restServerServiceType.GetTypeInfo().GetCustomAttribute<RestServerServiceInstanceAttribute>();
                     if (attrib != null)
                     {
                         instanceType = attrib.RestServerServiceInstanceType;
                     }
 
-                    TryExposeRestServerService(RestServerServiceType, instanceType);
+                    TryExposeRestServerService(restServerServiceType, instanceType);
                 }
             }
         }
+
+        private Type FindTopLevelInterface(Type type)
+        {
+            var intface = type.GetInterfaces().Where(intf => _restServerServiceBaseType.IsAssignableFrom(intf)).FirstOrDefault();
+            if (intface == null)
+                return FindTopLevelInterface(type.BaseType);
+
+            if (intface == _restServerServiceBaseType)
+                return null;
+
+            return intface;
+        }
+
         private bool IsRouteAlreadyRegistered(string route)
         {
             return GetActionForRoute(route) != null;
@@ -66,17 +79,31 @@ namespace Jens.RestServer
                 .Where(rroute => rroute.RouteRegex.IsMatch(route))
                 .FirstOrDefault();
         }
-        private void TryExposeRestServerService(Type RestServerServiceType, RestServerServiceInstanceType instanceType)
+        private void TryExposeRestServerService(Type restServerServiceType, RestServerServiceInstanceType instanceType)
         {
             ExposedRestServerService exposedRestServerService = new ExposedRestServerService(_restServerDependencyResolver)
             {
-                ServiceType = RestServerServiceType,
+                ServiceType = restServerServiceType,
                 InstanceType = instanceType,
+                TopLevelInterfaceType = FindTopLevelInterface(restServerServiceType),
             };
 
-            foreach (var method in RestServerServiceType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            InterfaceMapping interfaceMapping;
+            if (exposedRestServerService.TopLevelInterfaceType != null)
+                interfaceMapping = restServerServiceType.GetInterfaceMap(exposedRestServerService.TopLevelInterfaceType);
+            else
             {
-                var methodAttribute = method.GetCustomAttribute<RestServerServiceCallAttribute>();
+                interfaceMapping = new InterfaceMapping() {
+                    TargetMethods = null,
+                    InterfaceMethods = null,
+                    InterfaceType = null,
+                    TargetType = null,
+                };
+            }
+
+            foreach (var methodImpl in restServerServiceType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var methodAttribute = methodImpl.GetCustomAttribute<RestServerServiceCallAttribute>();
                 if (methodAttribute == null)
                 {
                     continue;
@@ -86,6 +113,7 @@ namespace Jens.RestServer
                     throw new ArgumentException($"Invalid route given: {methodAttribute.Route}", nameof(RestServerServiceCallAttribute.Route));
                 }
 
+
                 var routeStr = MakeRoute(methodAttribute.Route);
 
                 if (IsRouteAlreadyRegistered(routeStr))
@@ -93,9 +121,22 @@ namespace Jens.RestServer
                     throw new ArgumentException($"Route already registered. {routeStr}", nameof(RestServerServiceCallAttribute.Route));
                 }
 
+                MethodInfo methodToCall = methodImpl;
+                if (interfaceMapping.TargetMethods != null)
+                {
+                    var implFoundOnIfaceMap = FindIndexByImpl(interfaceMapping.TargetMethods, methodImpl);
+                    if (implFoundOnIfaceMap == null)
+                    {
+                        _logger.Warn($"{nameof(RestServerServiceRouteHandler)}: Implementation skipped {routeStr}, not defined in interface {exposedRestServerService.TopLevelInterfaceType.FullName} ");
+                        continue;
+                    }
+
+                    methodToCall = interfaceMapping.InterfaceMethods[implFoundOnIfaceMap.Value];
+                }
+
                 Type inputType = null;
                 bool isBodyRequested = false;
-                var parameters = method.GetParameters();
+                var parameters = methodImpl.GetParameters();
 
                 if (parameters != null && parameters.Length > 2)
                 {
@@ -128,10 +169,10 @@ namespace Jens.RestServer
                     isBodyRequested = true;
                 }
 
-                var exposedRestServerAction = new ExposedRestServerAction(exposedRestServerService, method)
+                var exposedRestServerAction = new ExposedRestServerAction(exposedRestServerService, methodToCall)
                 {
                     IsBodyRequested = isBodyRequested,
-                    OutputType = method.ReturnType,
+                    OutputType = methodImpl.ReturnType,
                     InputType = inputType,
                     Route = routeStr,
                     Methods = methodAttribute.Methods?.Split(',').Select(str => str.Trim().ToUpper()).ToArray() ?? new string[0]
@@ -139,7 +180,7 @@ namespace Jens.RestServer
                 exposedRestServerAction.CompileInputParameters();
                 exposedRestServerService.Routes.Add(exposedRestServerAction);
 
-                _logger.Info($"{nameof(RestServerServiceRouteHandler)}: \"{RestServerServiceType.FullName}\" exposed API method \"{exposedRestServerAction.Route.Replace("{", "{{").Replace("}", "}}")}\".");
+                _logger.Info($"{nameof(RestServerServiceRouteHandler)}: \"{restServerServiceType.FullName}\" exposed API method \"{exposedRestServerAction.Route.Replace("{", "{{").Replace("}", "}}")}\".");
             }
 
             // We got any routes exposed? 
@@ -153,6 +194,18 @@ namespace Jens.RestServer
                 _exposedRestServerServices.Add(exposedRestServerService);
             }
         }
+
+        private int? FindIndexByImpl(MethodInfo[] targetMethods, MethodInfo methodImpl)
+        {
+            for (int i = 0; i < targetMethods.Length; i++)
+            {
+                if (targetMethods[i].Equals(methodImpl))
+                    return i;
+            }
+
+            return null;
+        }
+
         private static string MakeRoute(string route)
         {
             while (route.StartsWith("/"))
@@ -244,17 +297,21 @@ namespace Jens.RestServer
             {
                 result = await restServerAction.Execute(context, inputParameter);
             }
-            catch (RestServerServiceCallException ex)
-            {
-                _logger.Info($"{correlationId} Routing failed, on expected exception {ex.GetType().FullName}, {route} action failed. Code: {ex.HttpStatusCode} Phrase: {ex.HttpReasonPhrase}  Message: {ex.Message}");
-                context.Response.ReasonPhrase = ex.HttpReasonPhrase;
-                context.Response.StatusCode = ex.HttpStatusCode;
-                context.Response.Close();
-                return true;
-            }
             catch (Exception ex)
             {
-                _logger.Info($"{correlationId} Routing failed, {route} action failed. Message: {ex.Message}");
+                if (ex is TargetInvocationException targetInvocationException)
+                {
+                    if (ex.InnerException is RestServerServiceCallException restServerServiceCallException)
+                    {
+                        _logger.Info($"{correlationId} Routing failed, on expected exception {ex.GetType().FullName}, {route} action failed. Code: {restServerServiceCallException.HttpStatusCode} Phrase: {restServerServiceCallException.HttpReasonPhrase}  Message: {ex.Message}");
+                        context.Response.ReasonPhrase = restServerServiceCallException.HttpReasonPhrase;
+                        context.Response.StatusCode = restServerServiceCallException.HttpStatusCode;
+                        context.Response.Close();
+                        return true;
+                    }
+                }
+
+                _logger.Info($"{correlationId} Routing failed, {route} action failed. Exception: {ex.ToString()}");
                 context.Response.InternalServerError();
                 context.Response.Close();
                 return true;

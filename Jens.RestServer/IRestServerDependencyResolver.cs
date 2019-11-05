@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Jens.RestServer
 {
     /// <summary>
-    /// Simple dependency resolver for your <see cref="RestServerService"/> implementations.
+    /// Simple dependency resolver for your <see cref="IRestServerService"/> implementations.
     /// </summary>
     public interface IRestServerDependencyResolver
     {

@@ -9,8 +9,9 @@ namespace Jens.RestServer
     internal class ExposedRestServerService
     {
         public Type ServiceType { get; set; }
+        public Type TopLevelInterfaceType { get; set; }
         public RestServerServiceInstanceType InstanceType { get; set; } = RestServerServiceInstanceType.Instance;
-        public RestServerService SingletonInstance { get; set; }
+        public IRestServerService SingletonInstance { get; set; }
         public List<ExposedRestServerAction> Routes { get; set; } = new List<ExposedRestServerAction>();
 
         private readonly IRestServerDependencyResolver _restServerDependencyResolver;
@@ -41,9 +42,9 @@ namespace Jens.RestServer
             throw new NotImplementedException($"{nameof(ExposedRestServerService)}: InstanceType not implemented. {InstanceType}");
         }
 
-        private RestServerService InternalCreateInstance()
+        private IRestServerService InternalCreateInstance()
         {
-            var instance = _restServerDependencyResolver.Activate(ServiceType) as RestServerService;
+            var instance = _restServerDependencyResolver.Activate(ServiceType) as IRestServerService;
 
             if (instance == null)
                 throw new InvalidOperationException($"Could not get dependency {ServiceType.FullName}.");
@@ -51,7 +52,7 @@ namespace Jens.RestServer
             return instance;
         }
 
-        private static RestServerService ApplyContext(RestServerService RestServerService, HttpListenerContext context)
+        private static IRestServerService ApplyContext(IRestServerService RestServerService, HttpListenerContext context)
         {
             if (RestServerService == null)
             {

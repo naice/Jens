@@ -21,9 +21,9 @@ namespace Jens.RestServer
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class RestServerServiceInstanceAttribute : Attribute
     {
-        public RestServerServiceInstanceAttribute(RestServerServiceInstanceType RestServerServiceInstanceType)
+        public RestServerServiceInstanceAttribute(RestServerServiceInstanceType restServerServiceInstanceType)
         {
-            this.RestServerServiceInstanceType = RestServerServiceInstanceType;
+            this.RestServerServiceInstanceType = restServerServiceInstanceType;
         }
 
         public RestServerServiceInstanceType RestServerServiceInstanceType { get; }

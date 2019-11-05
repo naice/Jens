@@ -28,6 +28,7 @@ namespace Jens.RestServer.Sample
             // initialize inversion of control container.
             _container = new RestServerContainer()
                 .WithSingleton(_config)
+                .WithSingleton<AspectOrientedAuthorizationAttributeInterceptor>()
                 as RestServerContainer;
 
             // initialize simple rest server with config defaults.

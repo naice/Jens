@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Text;
 
 namespace Jens.RestServer.Sample
@@ -17,9 +18,12 @@ namespace Jens.RestServer.Sample
     }
 
     [RestServerServiceInstance(RestServerServiceInstanceType.Instance)]
-    internal class SampleApiService : RestServerService
+    internal class SampleApiService : IRestServerService
     {
         private readonly RestServerHostedServiceConfiguration _config;
+
+        public HttpListenerRequest Request { get; set; }
+        public HttpListenerResponse Response { get; set; }
 
         public SampleApiService(RestServerHostedServiceConfiguration configuration)
         {
