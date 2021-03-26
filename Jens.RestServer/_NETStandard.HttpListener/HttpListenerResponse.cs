@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.IO;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -78,6 +80,11 @@ namespace System.Net.Http
             try
             {
                 await outputStream.CopyToAsync(socketStream);
+            }
+            catch (Exception ex)
+            {
+                // connection might have been closed already from counterpart. 
+                Trace.WriteLine("HttpListenerResponse - Can't copy to socketStream: " + ex.ToString());
             }
             finally
             {
