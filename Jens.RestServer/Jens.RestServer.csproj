@@ -7,7 +7,7 @@
     <Authors>Jens Marchewka (im.naice@googlemail.com)</Authors>
     <PackageTags>Server, Rest, Http, RestServer, Simple</PackageTags>
     <PackageId>Jens.RestServer</PackageId>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <Description>A small and very simple .net core rest capable web server. Visit https://github.com/naice/NETStandard.RestServer for more infos.</Description>
     <Copyright>Jens Marchewka (im.naice@googlemail.com) 2019</Copyright>
     <PackageProjectUrl>https://github.com/naice/Jens</PackageProjectUrl>
